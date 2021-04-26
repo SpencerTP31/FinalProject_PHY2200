@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import torch
+import librosa
+from IPython.display import Audio, display
 
 def print_metadata(metadata, src=None):
     if src:
@@ -50,6 +52,62 @@ def plot_waveform(waveform, sample_rate, title="Waveform", xlim=None, ylim=None)
         axes[c].set_ylim(ylim)
     figure.suptitle(title)
     plt.show(block=False)
+    
+def plot_waveforms(waveform, sample_rate, title="Waveform", xlim=None, ylim=None):
+    figure, axes = plt.subplots(nrows=1, ncols=5, sharex=False,
+                             sharey=True, figsize=(20,5))
+
+    for x in range(5):
+        wave = waveform[x][0].numpy()
+        num_channels, num_frames = wave.shape
+        time_axis = torch.arange(0, num_frames) / sample_rate
+#         if num_channels == 1:
+#             axe = [axes[x]]
+    
+        for c in range(num_channels):
+            axes[x].set_title(waveform[x][1])
+            axes[x].plot(time_axis, waveform[x][0][c], linewidth=1)
+            axes[x].grid(True)
+        if num_channels > 1:
+            axes[x].set_ylabel(f'Channel {c+1}')
+        if xlim:
+            axes[x].set_xlim(xlim)
+        if ylim:
+            axes[x].set_ylim(ylim)
+        figure.suptitle(title)
+
+def plot_fft(fft):
+    fig, axes = plt.subplots(nrows=1, ncols=5, sharex=False,
+                             sharey=True, figsize=(20,5))
+    fig.suptitle('Fourier Transforms', size=16)
+    i = 0
+    for y in range(5):
+        data = list(fft.values())[i]
+        Y, freq = data[0], data[1]
+        axes[y].set_title(list(fft.keys())[i])
+        axes[y].plot(freq, Y)
+        axes[y].get_xaxis().set_visible(False)
+        axes[y].get_yaxis().set_visible(False)
+        i += 1
+
+def plot_spectograms(spectograms, fig):
+    rows = 1
+    columns = 5
+    for i in range(5):
+        fig.add_subplot(rows, columns, i+1)
+        plt.imshow(spectograms[i][0].squeeze().numpy(), cmap='hot')
+    
+def plot_signals(signals):
+    fig, axes = plt.subplots(nrows=1, ncols=5, sharex=False,
+                             sharey=True, figsize=(20,5))
+    fig.suptitle('Time Series', size=16)
+    i = 0
+    for y in range(5):
+        axes[y].set_title(list(signals.keys())[i])
+        axes[y].plot(list(signals.values())[i])
+        axes[y].get_xaxis().set_visible(False)
+        axes[y].get_yaxis().set_visible(False)
+        i += 1
 
 def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
     waveform = waveform.numpy()
