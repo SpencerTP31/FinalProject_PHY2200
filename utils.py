@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import torch
+import torchaudio
 import librosa
 from IPython.display import Audio, display
 
@@ -148,3 +149,24 @@ def play_audio(waveform, sample_rate):
         display(Audio((waveform[0], waveform[1]), rate=sample_rate))
     else:
         raise ValueError("Waveform with more than 2 channels are not supported.")
+        
+def transform(waveform, sr, fixed_sample_rate):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    resample_transform = torchaudio.transforms.Resample(orig_freq=sr, new_freq=fixed_sample_rate)
+    audio_mono = torch.mean(resample_transform(waveform), dim=0, keepdim=True).to(device)
+
+    mel_spectogram_transform = torchaudio.transforms.MelSpectrogram(sample_rate=fixed_sample_rate, n_mels=128).to(device)
+    melspectogram_db_transform = torchaudio.transforms.AmplitudeToDB()
+    melspectogram = mel_spectogram_transform(audio_mono)
+    melspectogram_db = melspectogram_db_transform(melspectogram)
+
+    fixed_length = 3 * (fixed_sample_rate//200)
+    if melspectogram_db.shape[2] < fixed_length:
+        melspectogram_db = torch.nn.functional.pad(
+          melspectogram_db, (0, fixed_length - melspectogram_db.shape[2]))
+    else:
+        melspectogram_db = melspectogram_db[:, :, :fixed_length]
+
+    melspectogram_db = melspectogram_db.unsqueeze(0)
+    
+    return melspectogram_db
